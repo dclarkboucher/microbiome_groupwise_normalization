@@ -139,17 +139,17 @@ groupnorm <- function(Y, x, method = c("G-RLE", "FTSS"),
       
     } else{
       lr_dens <- density(log_ratios)
-      lr_center <- with(dlr, x[which.max(y)])
+      lr_center <- with(lr_dens, x[which.max(y)])
     }
     
     center_quantile <- mean(log_ratios <= lr_center)
-    q_lower <- max(mode_quant - prop_reference/2, 0)
-    q_upper <- min(mode_quant + prop_reference/2, 1)
+    q_lower <- max(center_quantile - prop_reference/2, 0)
+    q_upper <- min(center_quantile + prop_reference/2, 1)
     lr_quants <- quantile(log_ratios, c(q_lower, q_upper))
     include <- as.numeric(log_ratios > lr_quants[1] &
                             log_ratios < lr_quants[2])
     include <- include * sum(S) / sum(include)
-    offset <- as.numeric(Yt %*% use)
+    offset <- as.numeric(Yt %*% include)
   }
   
   (offset / gmean(offset)) * gmean(S)
@@ -169,7 +169,7 @@ get_offset <- function(Y, x = NULL, method = c("TSS","CSS","RLE","TMM", "GMPR", 
   libsize <- colSums(Y)
   
   if(is.null(rownames(Y))){
-    rownames(X) <- paste0("t", seq_len(p))
+    rownames(Y) <- paste0("t", seq_len(p))
   }
   
   if (method == "TSS"){

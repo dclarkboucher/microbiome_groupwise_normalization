@@ -1,6 +1,6 @@
 # other packages: LaplacesDemon
 rm(list=ls())
-total_reps <- 10 
+total_reps <- 1 
 
 # Replicate the analysis by setting total_reps = 1000 and splitting the 
 # simulations into separate, parallel jobs
@@ -46,7 +46,7 @@ for (n in ns){
       
       for (ps in prop_signal) {
         
-        for (b1_m in b1_means){
+        for (b1_m in beta1_means){
           
           # Sample signals
           set.seed(seed_param)
@@ -81,7 +81,7 @@ for (n in ns){
               Z <- t(mvtnorm::rmvnorm(n = n, sigma = Sigma_z))
               V <- t(mvtnorm::rmvnorm(n = n, sigma = Sigma_v))
               not_zero <- Z + a0 > 0
-              mu <- nu * exp(V) * not_zeSigma_zo
+              mu <- nu * exp(V) * not_zero
               
               # Sample data
               Y <- matrix(NA, q, n)
@@ -93,7 +93,7 @@ for (n in ns){
               for (norm in norms){
                 
                 # Calculate normalization factor
-                quiet(offset <- get_offset(Y = Y, x = x, norm = norm))
+                quiet(offset <- get_offset(Y = Y, x = x, method = norm))
                 
                 for (method in methods){
                   
@@ -181,5 +181,5 @@ tpr_results_sum <- bind_rows(tpr_results)
 results_sum <- list(fdr = fdr_results_sum,
                     tpr = tpr_results_sum)
 
-filename <- paste0("output/model_sims_",job_index,".rda")
+filename <- paste0("output/model_sims.rda")
 save(results_sum, file = filename)
