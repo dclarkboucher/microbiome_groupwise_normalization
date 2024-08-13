@@ -75,6 +75,8 @@ for (n in ns){
             for (r in seq_len(total_reps)) {
               
               set.seed(r + 1000)
+
+              # Generate library size
               S <- (rnbinom(n = n, size = size_lib, mu = mean_lib))
               
               # Generate latent variables

@@ -84,7 +84,59 @@ analysis_wrapper <- function(Y, x, offset,
 }
 
 
-
+analysis_covariate_wrapper <- function(Y, x, cov, offset, 
+                             method = c("edgeR", "DESeq2", "mgs")){
+  
+  xf <- factor(x)
+  df <- data.frame(xf, cov)
+  
+  q <- nrow(Y)
+  if (method == "DESeq2"){
+    
+    obj <-
+      suppressMessages(
+        DESeqDataSetFromMatrix(
+          countData = Y,
+          colData = df,
+          design = ~ xf + cov
+        )
+      )
+    mynorms <- matrix(offset / colSums(Y), byrow = T, nrow = nrow(Y), 
+                      ncol = ncol(Y))
+    DESeq2::normalizationFactors(obj) <- mynorms
+    
+    mod <- suppressMessages(results(DESeq(obj, quiet = TRUE), name = "xf_1_vs_0"))
+    beta1_hat <- log(2^mod@listData$log2FoldChange)
+    pv <- mod@listData$pvalue
+    
+  } else if (method == "edgeR"){
+    
+    
+    obj <- 
+      edgeR::DGEList(
+        counts = Y, 
+        lib.size = offset,
+        group = x
+      )
+    
+    design <- model.matrix(~ ., data.frame(xf, cov))
+    obj <- estimateDisp(obj, design)
+    fit <- glmQLFit(obj, design)
+    out <- glmQLFTest(fit, coef = 2)
+    
+    beta1_hat <- log(2^out$table$logFC)
+    pv <- out$table$PValue
+  }
+  
+  out <-
+    data.frame(
+      beta1_hat = beta1_hat,
+      pv = pv
+    )
+  
+  return(out)
+  
+}
 
 
 # Function to compute the geometric mean
@@ -176,7 +228,7 @@ get_offset <- function(Y, x = NULL, method = c("TSS","CSS","RLE","TMM", "GMPR", 
     offset <- libsize
     
   } else if (method %in% c("TMM", "RLE")){
-    
+    Y <- apply(Y, 2, function(x) ifelse(x == 0, 1, x)) # pseudo-count
     sf <- edgeR::calcNormFactors(Y, method = method) # scaling factor
     offset <- sf * libsize
     
