@@ -1,6 +1,5 @@
 # other packages: LaplacesDemon
 rm(list=ls())
-total_reps <- 1 
 
 # Replicate the analysis by setting total_reps = 1000 and splitting the 
 # simulations into separate, parallel jobs
@@ -12,7 +11,6 @@ library(dplyr)
 library(edgeR)
 library(DESeq2)
 library(metagenomeSeq)
-library(MicrobiomeStat)
 source("utils/functions.R")
 
 
@@ -36,7 +34,7 @@ size_lib <- mean_lib^2 / (var_lib - mean_lib) # used in NB distribution
 
 # Run simulations
 fdr_results <- list()
-tpr_results <- list()
+fpr_results <- list()
 j <- 1
 for (n in ns){
   
@@ -88,7 +86,7 @@ for (n in ns){
               # Sample data
               Y <- matrix(NA, q, n)
               for (i in 1:n) {
-                Y[, i] <- as.numeric(rmultinom(1, S[i], prob = mu[, i]))
+                Y[, i] <- as.numeric(rmultinom(1, S[i], prob = mu[,i]))
                 
               }
               
@@ -150,7 +148,7 @@ for (n in ns){
                   tp <- false_pv_indices - fp
                   tpr <- tp / q1
                   
-                  tpr_results[[j]] <-
+                  fpr_results[[j]] <-
                     data.frame(
                       method = method,
                       norm = norm,
@@ -179,9 +177,9 @@ for (n in ns){
 }
 
 fdr_results_sum <- bind_rows(fdr_results)
-tpr_results_sum <- bind_rows(tpr_results)
+fpr_results_sum <- bind_rows(fpr_results)
 results_sum <- list(fdr = fdr_results_sum,
-                    tpr = tpr_results_sum)
+                    tpr = fpr_results_sum)
 
 filename <- paste0("output/model_sims.rda")
 save(results_sum, file = filename)

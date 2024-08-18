@@ -12,7 +12,6 @@ library(dplyr)
 library(edgeR)
 library(DESeq2)
 library(metagenomeSeq)
-library(MicrobiomeStat)
 source("utils/functions.R")
 
 
@@ -36,7 +35,7 @@ size_lib <- mean_lib^2 / (var_lib - mean_lib) # used in NB distribution
 
 # Run simulations
 fdr_results <- list()
-tpr_results <- list()
+fpr_results <- list()
 j <- 1
 for (n in ns){
   
@@ -106,7 +105,7 @@ for (n in ns){
                 
                 for (method in methods){
                   
-                  out <- analysis_wrapper_covariate(Y, x, cov, offset, 
+                  out <- analysis_covariate_wrapper(Y, x, cov, offset, 
                                                     method = method)
                   beta1_hat <- out$beta1_hat
                   pv <- out$pv
@@ -158,7 +157,7 @@ for (n in ns){
                   tp <- false_pv_indices - fp
                   tpr <- tp / q1
                   
-                  tpr_results[[j]] <-
+                  fpr_results[[j]] <-
                     data.frame(
                       method = method,
                       norm = norm,
@@ -187,9 +186,9 @@ for (n in ns){
 }
 
 fdr_results_sum <- bind_rows(fdr_results)
-tpr_results_sum <- bind_rows(tpr_results)
+fpr_results_sum <- bind_rows(fpr_results)
 results_sum <- list(fdr = fdr_results_sum,
-                    tpr = tpr_results_sum)
+                    fpr = fpr_results_sum)
 
-filename <- paste0("output/model_covariate_sims.rda")
+filename <- paste0("output/model_confounder_sims.rda")
 save(results_sum, file = filename)

@@ -272,6 +272,52 @@ gmean <- function(x){
   
 }
 
+
+# Generate a synthetic dataset based on observed taxon counts by re-sampling
+# Y: q by n matrix of q taxa, n samples
+# beta1: log fold changes
+# S: library size
+get_synthetic_data <- function(Y, beta1, S){
+  
+  
+  # Set Up
+  n <- ncol(Y)
+  n0 <- ceiling(n/2)
+  n1 <- n - n0
+  x <- c(rep(0,n0),rep(1,n1))
+  x1_id <- n0 + seq_len(n1)
+  fold_change <- exp(beta1)
+  
+  # Shuffle Data
+  perm <- sample(n)
+  Y <- Y[, perm]
+  S <- S[perm]
+  
+  # Re-sampling
+  for (i in x1_id) {
+    Y[, i] <-
+      rmultinom(
+        n = 1,
+        size = S[i],
+        prob = (Y[, i] / S[i]) * fold_change
+      )
+  }
+  
+  list(Y = Y, x = x, S = S)
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
 # Reference: https://github.com/lichen-lab/GMPR
 gmpr <- function (comm, intersect.no = 10, ct.min = 1, trace = TRUE) {
   # Computes the GMPR size factor
