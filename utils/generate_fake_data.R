@@ -1,4 +1,5 @@
 
+current_objects <- ls()
 set.seed(1)
 
 # PHACS
@@ -56,6 +57,6 @@ mlvs_mbs$taxa <- Y
 mlvs_mbs$x <- x
 save(mlvs_mbs, file = "data/MLVS_MBS.rda")
 
-
+rm(list = setdiff(ls(), current_objects))
 
 

@@ -80,11 +80,22 @@ gmpr <- function (comm, intersect.no = 10, ct.min = 1, trace = TRUE) {
 mse <- function(x, y)
   mean((x - y) ^ 2)
 
-analysis_wrapper <- function(Y, x, offset, 
+
+analysis_wrapper <- function(Y, x, offset, libsize = NULL,
                              method = c("edgeR", "DESeq2", "mgs")){
   
   q <- nrow(Y)
-  S <- colSums(Y)
+  
+  if (is.null(libsize)){
+    S <- colSums(Y)
+    
+  } else {
+    S <- libsize
+    
+  }
+  
+  
+  
   if (method == "DESeq2"){
     
     xf <- factor(x)
@@ -118,16 +129,6 @@ analysis_wrapper <- function(Y, x, offset,
     
     beta1_hat <- log(2^mod$table$logFC)
     pv <- mod$table$PValue
-    
-    
-  } else if (method == "PLN"){
-    
-    Yt <- t(Y)
-    quiet(pln_out <- PLN(Yt ~ x + offset(log(offset)),
-                         control = PLN_param(config_post =
-                                               list(variational_var = F))))
-    beta1_hat <- as.numeric(coef(pln_out)[2,])
-    pv <- rep(NA, q)
     
     
   } else if (method == "mgs"){

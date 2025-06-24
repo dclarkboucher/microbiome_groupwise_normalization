@@ -14,8 +14,16 @@ quiet <- function(x) {
 # x: Binary covariate indicating group status, length n
 # offset: offset term of length n
 # method: DAA method (edgeR, DESeq2, metagenomeSeq)
-analysis_wrapper <- function(Y, x, offset, 
+analysis_wrapper <- function(Y, x, offset, library = NULL,
                              method = c("edgeR", "DESeq2", "metagenomeSeq")){
+  
+  if (is.null(libsize)){
+    S <- colSums(Y)
+    
+  } else {
+    S <- libsize
+    
+  }
   
   q <- nrow(Y)
   if (method == "DESeq2"){
@@ -29,7 +37,7 @@ analysis_wrapper <- function(Y, x, offset,
           design = ~ xf
         )
       )
-    mynorms <- matrix(offset / colSums(Y), byrow = T, nrow = nrow(Y), ncol = ncol(Y))
+    mynorms <- matrix(offset / S, byrow = T, nrow = nrow(Y), ncol = ncol(Y))
     DESeq2::normalizationFactors(obj) <- mynorms
     
     mod <- suppressMessages(results(DESeq(obj, quiet = TRUE)))
@@ -84,13 +92,23 @@ analysis_wrapper <- function(Y, x, offset,
 }
 
 
-analysis_covariate_wrapper <- function(Y, x, cov, offset, 
-                             method = c("edgeR", "DESeq2", "mgs")){
+analysis_covariate_wrapper <- function(Y, x, cov, offset, library = NULL,
+                             method = c("edgeR", "DESeq2")){
   
   xf <- factor(x)
   df <- data.frame(xf, cov)
-  
+  method <- match.arg(method)
   q <- nrow(Y)
+  
+  if (is.null(libsize)){
+    S <- colSums(Y)
+    
+  } else {
+    S <- libsize
+    
+  }
+  
+  
   if (method == "DESeq2"){
     
     obj <-
@@ -101,7 +119,7 @@ analysis_covariate_wrapper <- function(Y, x, cov, offset,
           design = ~ xf + cov
         )
       )
-    mynorms <- matrix(offset / colSums(Y), byrow = T, nrow = nrow(Y), 
+    mynorms <- matrix(offset / S, byrow = T, nrow = nrow(Y), 
                       ncol = ncol(Y))
     DESeq2::normalizationFactors(obj) <- mynorms
     
