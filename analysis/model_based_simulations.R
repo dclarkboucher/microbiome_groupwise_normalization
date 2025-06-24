@@ -4,6 +4,9 @@ rm(list=ls())
 # Replicate the analysis by setting total_reps = 1000 and splitting the 
 # simulations into separate, parallel jobs
 
+total_reps <- 10
+
+
 # Packages ----------------------------------------------------------------
 
 library(tibble)
@@ -102,7 +105,7 @@ for (n in ns){
                   pv <- out$pv
                   
                   # FDR results 
-                  cutoffs <- seq(0.01, 0.2, 0.01) 
+                  cutoffs <- seq(0.05, 0.1) 
                   nc <- length(cutoffs)
                   fdp <- fpr <- tpr <- numeric(nc)
                   pv_adj <- p.adjust(pv, method = "BH")
@@ -163,7 +166,8 @@ for (n in ns){
                       fpr = fpr,
                       tp = tp,
                       fp = fp
-                    )
+                    ) |> 
+                    filter(fpr < 0.40)
                   
                   j <- j + 1
                 }

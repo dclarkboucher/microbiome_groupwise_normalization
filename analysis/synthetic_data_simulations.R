@@ -1,9 +1,5 @@
 # script
 
-# other packages: LaplacesDemon
-rm(list=ls())
-total_reps <- 1 
-
 # Replicate the analysis by setting total_reps = 1000 and splitting the 
 # simulations into separate, parallel jobs
 
@@ -15,28 +11,17 @@ library(edgeR)
 library(DESeq2)
 library(metagenomeSeq)
 
-# Generate toy data -------------------------------------------------------
-n <- 200
-q <- 300
-beta0 <- rnorm(q)
-s2_v <- 1.5
-Sigma_z <- cov2cor(LaplacesDemon::rinvwishart(2 * q, diag(q)))
-Sigma_v <- Sigma_z * s2_v
-Z <- t(mvtnorm::rmvnorm(n = n, sigma = Sigma_z))
-V <- t(mvtnorm::rmvnorm(n = n, sigma = Sigma_v))
-mu <- exp(beta0 + V) * (Z > 0)
-mean_lib <- 60000
-var_lib <- 15000^2
-size_lib <- mean_lib^2 / (var_lib - mean_lib)
-S <- rnbinom(n = n, size = size_lib, mu = mean_lib)
-Y <- matrix(NA, nrow = q, ncol = n)
-for (i in seq_len(n)) Y[, i] <- as.numeric(rmultinom(1, S[i], prob = mu[, i]))
-dataset_lists <- list()
-dataset_lists[["toy_data"]] <- list(Y = Y, S = S)
-rm(list = setdiff(ls(), c("dataset_lists", "total_reps")))
+# Load data ---------------------------------------------------------------
+source("utils/generate_fake_data.R"); rm(list=ls())
+load("data/PHACS.rda")
+load("data/MLVS_MBS.rda")
 
+dataset_lists <- list()
+dataset_lists[["MLVS/MBS"]] <- with(mlvs_mbs, list(Y = taxa, S = colSums(taxa)))
+dataset_lists[["PHACS"]] <- with(phacs, list(Y = taxa, S = colSums(taxa)))
 
 # Simulation --------------------------------------------------------------
+total_reps <- 10
 
 # Load some functions
 source("utils/functions.R")
@@ -47,7 +32,8 @@ prop_signal <- c(0.1, 0.20, 0.30) # proportion of non-zero log fold changes
 beta1_means <- c(1) # mean of the non-zero log fold changes
 methods <- c("edgeR","metagenomeSeq","DESeq2") # DAA methods
 norms <- c("FTSS", "G-RLE", "TSS", "GMPR", "Wrench", "TMM", "RLE", "CSS") # norm methods
-datasets <- c("toy_data") # c("PHACS", "MLVS/MBS")
+datasets <- c("PHACS", "MLVS/MBS") # c("PHACS", "MLVS/MBS")
+norms <- c("FTSS")
 
 # Run simulations
 fdr_results <- list()
@@ -64,7 +50,7 @@ for (d in datasets){
   Y_true <- Y_true[sample(q),]
   
   for (ps in prop_signal) {
-    
+  
     for (b1_m in beta1_means){
       
       # Sample signals
@@ -89,7 +75,7 @@ for (d in datasets){
         x <- synth_data$x
         
         for (norm in norms){
-          
+          print(norm)
           # Calculate normalization factor
           quiet(offset <- get_offset(Y = Y, x = x, method = norm))
           
@@ -159,7 +145,8 @@ for (d in datasets){
                 fpr = fpr,
                 tp = tp,
                 fp = fp
-              )
+              ) |> 
+              filter(fpr < 0.40)
             
             j <- j + 1
           }

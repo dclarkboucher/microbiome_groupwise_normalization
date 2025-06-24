@@ -265,13 +265,6 @@ get_offset <- function(Y, x = NULL, method = c("TSS","CSS","RLE","TMM", "GMPR", 
   
 }
 
-gmean <- function(x){
-  
-  exp(mean(log(x)))
-  
-  
-}
-
 
 # Generate a synthetic dataset based on observed taxon counts by re-sampling
 # Y: q by n matrix of q taxa, n samples
