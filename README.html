@@ -647,10 +647,10 @@ normalization of microbiome data</h1>
 <p>Differential abundance analysis (DAA) of the microbiome is
 statistically challenging because 16S sequencing data are compositional.
 To account for this, many common DAA methods require calculating
-“normalization factors” that serve as the offset term in the statistical
-model. DAA methods that require normalization are edgeR, DESeq2, and
-MetagenomeSeq. Some common normalization methods are TSS, CSS, TMM, RLE,
-GMPR, and Wrench.</p>
+“normalization factors” that serve as the offset term (or similar) in
+the statistical model. DAA methods that require normalization include
+edgeR, DESeq2, and MetagenomeSeq. Some common normalization methods are
+TSS, CSS, TMM, RLE, GMPR, and Wrench.</p>
 <p>This repository provides companion code for our article, “Group-wise
 normalization in differential abundance analysis of microbiome samples”,
 which presented a novel normalization framework based on comparisons of
@@ -669,8 +669,8 @@ can be replicated using the scripts
 <code>synthetic_data_simulations.R</code> in the <code>analysis.R</code>
 folder. The simulations vary factors such as the noise level, sample
 size, and percent of taxa that are differentially abundant, for a
-variety of normalization methods and differential abundance analysis
-(DAA) methods. The scripts <code>additional_sims.R</code> and
+variety of normalization methods and DAA methods. The scripts
+<code>additional_sims.R</code> and
 <code>model_based_simulations_confounder.R</code> supplement the primary
 simulations by comparing normalization methods in subsettings with
 reduced compositional bias, imbalanced library sizes between groups, no
@@ -680,14 +680,14 @@ The results can be summarized using the script
 <p>The simulations performed in the article comprised 1,000 replications
 of each setting, which is too much to be run locally or on a single
 computing core. Replicating the full study requires outsourcing
-computation to a remote cluster. To run a subset of the simulations
-locally, one could, for example:</p>
+simulations to a remote computing cluster. To run a subset of the
+simulations locally, one could, for example:</p>
 <ol style="list-style-type: decimal">
 <li>Open the R Project file
-<code>microbiome_groupwise_normalization.Rproj</code> to open RStudio in
-the proper working directory.</li>
-<li>Ensure the packages listed in the
-<code>utils/install_packages.R</code> script are installed.</li>
+<code>microbiome_groupwise_normalization.Rproj</code> to start RStudio
+in the proper working directory.</li>
+<li>Ensure the packages listed in the script
+<code>utils/install_packages.R</code> are all installed.</li>
 <li>Open the file <code>model_based_simulations.R</code>.</li>
 <li>Set the <code>total_reps</code> parameter to 100.</li>
 <li>Set the <code>norms</code> (normalization methods),
@@ -695,29 +695,33 @@ the proper working directory.</li>
 percentages), <code>s2_vs</code> (variance parameters), and
 <code>ns</code> (sample sizes) to their desired values (e.g.,
 <code>prop_signal=c(0.1, 0.2)</code>)</li>
-<li>Run the script and generate figures using
-<code>process_output.R</code>.</li>
+<li>Run the script and use <code>process_output.R</code> to generate
+figures.</li>
 </ol>
-<p>Our analysis also included an application of the proposed methods to
-PHACS and MLVS/MBS. To run this analysis using synthetic versions of
-these datasets, run the file <code>analysis/real_data_analysis.R</code>,
-which will finish quickly.</p>
+<p>In addition to our simulation study, we applied the proposed
+normalization methods to PHACS and MLVS/MBS. To replicate this analysis
+using synthetic versions of these datasets, run the file
+<code>analysis/real_data_analysis.R</code>, which will finish
+quickly.</p>
 <h2 id="applying-group-wise-normalization">Applying group-wise
 normalization</h2>
 <p>This section provides instructions for using group-wise normalization
-to analyze real microbiome data. The first step is to generate and save
-fake versions of PHACS and MLVS/MBS and to load the required functions.
-Please ensure you have installed the require R packages by reviewing the
-file <code>utils/install_packages.R</code>.</p>
+to analyze real microbiome data. The first step is to generate fake
+versions of PHACS and MLVS/MBS and to load the required functions.
+Please review the file <code>utils/install_packages.R</code> to ensure
+you have installed the appropriate R packages.</p>
 <div class="sourceCode" id="cb1"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;utils/generate_fake_data.R&quot;</span>)</span>
 <span id="cb1-2"><a href="#cb1-2" tabindex="-1"></a><span class="fu">source</span>(<span class="st">&quot;utils/general_sim_functions.R&quot;</span>)</span></code></pre></div>
-<p>We consider the task of performing DAA on MLVS/MBS. Examination of
-the data reveals there are 372 taxa (the rows) measured on 520 subjects
-(the columns). The subjects have a mean sequencing depth (or “library
-size”) of 61 thousand taxa (range: 29 thousand to 110 thousand). Half
-the subjects have a value of 1 for the covariate and half the subjects
-have 0. At present, the group-wise normalization framework can only be
-applied when the covariate of interest is binary.</p>
+<p>We will consider the task of performing DAA on MLVS/MBS. Examination
+of the data reveals there are 372 taxa (the rows) measured on 520
+subjects (the columns). The subjects have a mean sequencing depth (or
+“library size”) of 61 thousand taxa (range: 29 thousand to 110
+thousand). Half the subjects have a value of 1 for the covariate and
+half the subjects have 0. At present, the group-wise normalization
+framework can only be applied when the covariate of interest is binary.
+Note that, on real data, the library size will not equal the sample-wise
+sum of counts since some taxa are typically omitted. Omitted taxa should
+still be counted in the library size.</p>
 <div class="sourceCode" id="cb2"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb2-1"><a href="#cb2-1" tabindex="-1"></a><span class="fu">load</span>(<span class="st">&quot;data/MLVS_MBS.rda&quot;</span>)</span>
 <span id="cb2-2"><a href="#cb2-2" tabindex="-1"></a>taxa <span class="ot">&lt;-</span> mlvs_mbs<span class="sc">$</span>taxa</span>
 <span id="cb2-3"><a href="#cb2-3" tabindex="-1"></a>covariate <span class="ot">&lt;-</span> mlvs_mbs<span class="sc">$</span>x</span>
@@ -734,45 +738,47 @@ applied when the covariate of interest is binary.</p>
 <span id="cb2-14"><a href="#cb2-14" tabindex="-1"></a><span class="fu">summary</span>(sequencing_depth)</span>
 <span id="cb2-15"><a href="#cb2-15" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
 <span id="cb2-16"><a href="#cb2-16" tabindex="-1"></a><span class="co">#&gt;   28743   49823   60051   60574   69536  110096</span></span></code></pre></div>
-<p>The main functions we will use for DAA are <code>groupnorm()</code>
-and <code>analysis_wrapper()</code>. <code>groupnorm()</code> calculates
-the corrected offset term by one of the two proposed group-wise
+<p>The main functions we will use are <code>groupnorm()</code> and
+<code>analysis_wrapper()</code>. The function <code>groupnorm()</code>
+calculates the corrected offset term by one of the two proposed
 normalization methods, group-wise relative log expression (G-RLE) or
-fold-truncated sum scaling(FTSS). G-RLE is a simple normalization method
-that applies RLE, a traditional sample-wise normalization method, to the
-group-level log fold changes instead of their sample-level analogs. FTSS
-is a more complex method that selects reference taxa based on the
-proximity of their log fold changes to the mode log fold change. The
-method involves an additional hyper-parameter <span class="math inline">\(p^*\)</span>, which denotes proportion of taxa
-that will serve as reference taxa. Our simulations demonstrated that
-FTSS is generally more effective at G-RLE at maintaining the nominal FDR
-level and offers slightly better power. Setting <span class="math inline">\(p^*=0.4\)</span> is a reasonable default.</p>
+fold-truncated sum scaling (FTSS). G-RLE is a simple normalization
+method that applies RLE, a traditional sample-wise normalization method,
+to the group-level log fold changes instead of their sample-level
+analogs. FTSS is a more complex method that selects reference taxa based
+on the proximity of their log fold changes to the mode log fold change.
+The method involves an additional hyper-parameter <span class="math inline">\(p\)</span>, which denotes proportion of taxa that
+will serve as reference taxa. Our simulations demonstrated that FTSS is
+generally more effective at G-RLE at maintaining the nominal FDR level
+and offers slightly better power. Setting <span class="math inline">\(p=0.4\)</span> is a reasonable default.</p>
 <div class="sourceCode" id="cb3"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb3-1"><a href="#cb3-1" tabindex="-1"></a><span class="co"># G-RLE</span></span>
-<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>offset_grle <span class="ot">&lt;-</span> <span class="fu">groupnorm</span>(<span class="at">Y =</span> taxa, <span class="at">x =</span> covariate, <span class="at">method =</span> <span class="st">&quot;G-RLE&quot;</span>)</span>
-<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a><span class="fu">summary</span>(offset_grle)</span>
-<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;   27055   49665   59941   60729   70471  116967</span></span>
-<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a></span>
-<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a><span class="co"># FTSS</span></span>
-<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a>offset_ftss <span class="ot">&lt;-</span> </span>
-<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>  <span class="fu">groupnorm</span>(</span>
-<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>    <span class="at">Y =</span> taxa, <span class="at">x =</span> covariate, </span>
-<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">&quot;FTSS&quot;</span>, </span>
-<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    <span class="at">prop_reference =</span> <span class="fl">0.40</span> <span class="co"># Default value</span></span>
-<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>  )</span>
-<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a><span class="fu">summary</span>(offset_ftss)</span>
-<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
-<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="co">#&gt;   20483   46650   59773   62478   75507  168921</span></span></code></pre></div>
+<span id="cb3-2"><a href="#cb3-2" tabindex="-1"></a>offset_grle <span class="ot">&lt;-</span> <span class="fu">groupnorm</span>(<span class="at">Y =</span> taxa, <span class="at">x =</span> covariate, <span class="at">libsize =</span> sequencing_depth,</span>
+<span id="cb3-3"><a href="#cb3-3" tabindex="-1"></a>                         <span class="at">method =</span> <span class="st">&quot;G-RLE&quot;</span>)</span>
+<span id="cb3-4"><a href="#cb3-4" tabindex="-1"></a><span class="fu">summary</span>(offset_grle)</span>
+<span id="cb3-5"><a href="#cb3-5" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb3-6"><a href="#cb3-6" tabindex="-1"></a><span class="co">#&gt;   27055   49665   59941   60729   70471  116967</span></span>
+<span id="cb3-7"><a href="#cb3-7" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" tabindex="-1"></a><span class="co"># FTSS</span></span>
+<span id="cb3-9"><a href="#cb3-9" tabindex="-1"></a>offset_ftss <span class="ot">&lt;-</span> </span>
+<span id="cb3-10"><a href="#cb3-10" tabindex="-1"></a>  <span class="fu">groupnorm</span>(</span>
+<span id="cb3-11"><a href="#cb3-11" tabindex="-1"></a>    <span class="at">Y =</span> taxa, <span class="at">x =</span> covariate, </span>
+<span id="cb3-12"><a href="#cb3-12" tabindex="-1"></a>    <span class="at">libsize =</span> sequencing_depth,</span>
+<span id="cb3-13"><a href="#cb3-13" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">&quot;FTSS&quot;</span>, </span>
+<span id="cb3-14"><a href="#cb3-14" tabindex="-1"></a>    <span class="at">prop_reference =</span> <span class="fl">0.40</span> <span class="co"># Default value</span></span>
+<span id="cb3-15"><a href="#cb3-15" tabindex="-1"></a>  )</span>
+<span id="cb3-16"><a href="#cb3-16" tabindex="-1"></a><span class="fu">summary</span>(offset_ftss)</span>
+<span id="cb3-17"><a href="#cb3-17" tabindex="-1"></a><span class="co">#&gt;    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. </span></span>
+<span id="cb3-18"><a href="#cb3-18" tabindex="-1"></a><span class="co">#&gt;   20483   46650   59773   62478   75507  168921</span></span></code></pre></div>
 <p>The last step is to perform DAA using
-<code>analysis_wrapper()</code>. For simplicity, we limit our analysis
-to the normalization method FTSS and the DAA methods MetagenomeSeq and
+<code>analysis_wrapper()</code>. For simplicity, we use the
+normalization method FTSS and the DAA methods MetagenomeSeq and
 DESeq2.</p>
 <p><code>analysis_wrapper()</code> produces a data frame with the
 columns <code>beta_1_hat</code> and <code>pv</code>, which contain the
-estimated log fold change and p-value for each taxon, respectively.
-MetagenomeSeq identified 23 associations and DESeq2 21 associations at a
-nominal FDR of 5% after applying the Benjamini and Hochberg
-procedure.</p>
+estimated log fold change and p-value for each taxon, respectively. At a
+nominal FDR level of 5% based on the Benjamini and Hochberg procedure,
+MetagenomeSeq identified 23 taxa as associated with covariate and DESeq2
+identified 21.</p>
 <div class="sourceCode" id="cb4"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" tabindex="-1"></a><span class="co"># MetagenomeSeq</span></span>
 <span id="cb4-2"><a href="#cb4-2" tabindex="-1"></a>out_mgs <span class="ot">&lt;-</span></span>
 <span id="cb4-3"><a href="#cb4-3" tabindex="-1"></a>  <span class="fu">analysis_wrapper</span>(</span>
@@ -802,37 +808,37 @@ procedure.</p>
 <span id="cb4-27"><a href="#cb4-27" tabindex="-1"></a><span class="co">#&gt;  8 taxon11    -1.14  1.35e-10</span></span>
 <span id="cb4-28"><a href="#cb4-28" tabindex="-1"></a><span class="co">#&gt;  9 taxon13     1.04  5.11e- 8</span></span>
 <span id="cb4-29"><a href="#cb4-29" tabindex="-1"></a><span class="co">#&gt; 10 taxon15     2.61  0       </span></span>
-<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a><span class="co">#&gt; # ℹ 13 more rows</span></span>
-<span id="cb4-31"><a href="#cb4-31" tabindex="-1"></a><span class="co"># DESeq2</span></span>
-<span id="cb4-32"><a href="#cb4-32" tabindex="-1"></a>out_deseq <span class="ot">&lt;-</span></span>
-<span id="cb4-33"><a href="#cb4-33" tabindex="-1"></a>    <span class="fu">analysis_wrapper</span>(</span>
-<span id="cb4-34"><a href="#cb4-34" tabindex="-1"></a>    <span class="at">Y =</span> taxa, </span>
-<span id="cb4-35"><a href="#cb4-35" tabindex="-1"></a>    <span class="at">x =</span> covariate,</span>
-<span id="cb4-36"><a href="#cb4-36" tabindex="-1"></a>    <span class="at">offset =</span> offset_ftss,</span>
-<span id="cb4-37"><a href="#cb4-37" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">&quot;DESeq2&quot;</span></span>
-<span id="cb4-38"><a href="#cb4-38" tabindex="-1"></a>  )</span>
-<span id="cb4-39"><a href="#cb4-39" tabindex="-1"></a>out_deseq <span class="sc">|&gt;</span></span>
-<span id="cb4-40"><a href="#cb4-40" tabindex="-1"></a>  <span class="fu">tibble</span>() <span class="sc">|&gt;</span> </span>
-<span id="cb4-41"><a href="#cb4-41" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb4-42"><a href="#cb4-42" tabindex="-1"></a>    <span class="at">taxon =</span> <span class="fu">paste0</span>(<span class="st">&quot;taxon&quot;</span>,<span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()),</span>
-<span id="cb4-43"><a href="#cb4-43" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(beta1_hat,pv), <span class="sc">~</span> <span class="fu">signif</span>(.x,<span class="dv">3</span>))</span>
-<span id="cb4-44"><a href="#cb4-44" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
-<span id="cb4-45"><a href="#cb4-45" tabindex="-1"></a>  <span class="fu">select</span>(taxon, beta1_hat, pv) <span class="sc">|&gt;</span> </span>
-<span id="cb4-46"><a href="#cb4-46" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">p.adjust</span>(pv) <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span>
-<span id="cb4-47"><a href="#cb4-47" tabindex="-1"></a><span class="co">#&gt; # A tibble: 21 × 3</span></span>
-<span id="cb4-48"><a href="#cb4-48" tabindex="-1"></a><span class="co">#&gt;    taxon   beta1_hat       pv</span></span>
-<span id="cb4-49"><a href="#cb4-49" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;       &lt;dbl&gt;    &lt;dbl&gt;</span></span>
-<span id="cb4-50"><a href="#cb4-50" tabindex="-1"></a><span class="co">#&gt;  1 taxon1      1.3   1.64e- 7</span></span>
-<span id="cb4-51"><a href="#cb4-51" tabindex="-1"></a><span class="co">#&gt;  2 taxon2      1.6   1.27e- 8</span></span>
-<span id="cb4-52"><a href="#cb4-52" tabindex="-1"></a><span class="co">#&gt;  3 taxon3      2.16  5.54e-16</span></span>
-<span id="cb4-53"><a href="#cb4-53" tabindex="-1"></a><span class="co">#&gt;  4 taxon7      1.05  9.12e- 5</span></span>
-<span id="cb4-54"><a href="#cb4-54" tabindex="-1"></a><span class="co">#&gt;  5 taxon9      1.43  4.76e- 8</span></span>
-<span id="cb4-55"><a href="#cb4-55" tabindex="-1"></a><span class="co">#&gt;  6 taxon11    -1.09  6.83e- 7</span></span>
-<span id="cb4-56"><a href="#cb4-56" tabindex="-1"></a><span class="co">#&gt;  7 taxon13     0.995 7.56e- 5</span></span>
-<span id="cb4-57"><a href="#cb4-57" tabindex="-1"></a><span class="co">#&gt;  8 taxon15     2.73  1.33e-22</span></span>
-<span id="cb4-58"><a href="#cb4-58" tabindex="-1"></a><span class="co">#&gt;  9 taxon17     1.02  2.83e- 5</span></span>
-<span id="cb4-59"><a href="#cb4-59" tabindex="-1"></a><span class="co">#&gt; 10 taxon18     1.52  1.69e- 8</span></span>
-<span id="cb4-60"><a href="#cb4-60" tabindex="-1"></a><span class="co">#&gt; # ℹ 11 more rows</span></span></code></pre></div>
+<span id="cb4-30"><a href="#cb4-30" tabindex="-1"></a><span class="co">#&gt; # ℹ 13 more rows</span></span></code></pre></div>
+<div class="sourceCode" id="cb5"><pre class="sourceCode r"><code class="sourceCode r"><span id="cb5-1"><a href="#cb5-1" tabindex="-1"></a><span class="co"># DESeq2</span></span>
+<span id="cb5-2"><a href="#cb5-2" tabindex="-1"></a>out_deseq <span class="ot">&lt;-</span></span>
+<span id="cb5-3"><a href="#cb5-3" tabindex="-1"></a>    <span class="fu">analysis_wrapper</span>(</span>
+<span id="cb5-4"><a href="#cb5-4" tabindex="-1"></a>    <span class="at">Y =</span> taxa, </span>
+<span id="cb5-5"><a href="#cb5-5" tabindex="-1"></a>    <span class="at">x =</span> covariate,</span>
+<span id="cb5-6"><a href="#cb5-6" tabindex="-1"></a>    <span class="at">offset =</span> offset_ftss,</span>
+<span id="cb5-7"><a href="#cb5-7" tabindex="-1"></a>    <span class="at">method =</span> <span class="st">&quot;DESeq2&quot;</span></span>
+<span id="cb5-8"><a href="#cb5-8" tabindex="-1"></a>  )</span>
+<span id="cb5-9"><a href="#cb5-9" tabindex="-1"></a>out_deseq <span class="sc">|&gt;</span></span>
+<span id="cb5-10"><a href="#cb5-10" tabindex="-1"></a>  <span class="fu">tibble</span>() <span class="sc">|&gt;</span> </span>
+<span id="cb5-11"><a href="#cb5-11" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb5-12"><a href="#cb5-12" tabindex="-1"></a>    <span class="at">taxon =</span> <span class="fu">paste0</span>(<span class="st">&quot;taxon&quot;</span>,<span class="dv">1</span><span class="sc">:</span><span class="fu">n</span>()),</span>
+<span id="cb5-13"><a href="#cb5-13" tabindex="-1"></a>    <span class="fu">across</span>(<span class="fu">c</span>(beta1_hat,pv), <span class="sc">~</span> <span class="fu">signif</span>(.x,<span class="dv">3</span>))</span>
+<span id="cb5-14"><a href="#cb5-14" tabindex="-1"></a>  ) <span class="sc">|&gt;</span> </span>
+<span id="cb5-15"><a href="#cb5-15" tabindex="-1"></a>  <span class="fu">select</span>(taxon, beta1_hat, pv) <span class="sc">|&gt;</span> </span>
+<span id="cb5-16"><a href="#cb5-16" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="fu">p.adjust</span>(pv) <span class="sc">&lt;</span> <span class="fl">0.05</span>)</span>
+<span id="cb5-17"><a href="#cb5-17" tabindex="-1"></a><span class="co">#&gt; # A tibble: 21 × 3</span></span>
+<span id="cb5-18"><a href="#cb5-18" tabindex="-1"></a><span class="co">#&gt;    taxon   beta1_hat       pv</span></span>
+<span id="cb5-19"><a href="#cb5-19" tabindex="-1"></a><span class="co">#&gt;    &lt;chr&gt;       &lt;dbl&gt;    &lt;dbl&gt;</span></span>
+<span id="cb5-20"><a href="#cb5-20" tabindex="-1"></a><span class="co">#&gt;  1 taxon1      1.3   1.64e- 7</span></span>
+<span id="cb5-21"><a href="#cb5-21" tabindex="-1"></a><span class="co">#&gt;  2 taxon2      1.6   1.27e- 8</span></span>
+<span id="cb5-22"><a href="#cb5-22" tabindex="-1"></a><span class="co">#&gt;  3 taxon3      2.16  5.54e-16</span></span>
+<span id="cb5-23"><a href="#cb5-23" tabindex="-1"></a><span class="co">#&gt;  4 taxon7      1.05  9.12e- 5</span></span>
+<span id="cb5-24"><a href="#cb5-24" tabindex="-1"></a><span class="co">#&gt;  5 taxon9      1.43  4.76e- 8</span></span>
+<span id="cb5-25"><a href="#cb5-25" tabindex="-1"></a><span class="co">#&gt;  6 taxon11    -1.09  6.83e- 7</span></span>
+<span id="cb5-26"><a href="#cb5-26" tabindex="-1"></a><span class="co">#&gt;  7 taxon13     0.995 7.56e- 5</span></span>
+<span id="cb5-27"><a href="#cb5-27" tabindex="-1"></a><span class="co">#&gt;  8 taxon15     2.73  1.33e-22</span></span>
+<span id="cb5-28"><a href="#cb5-28" tabindex="-1"></a><span class="co">#&gt;  9 taxon17     1.02  2.83e- 5</span></span>
+<span id="cb5-29"><a href="#cb5-29" tabindex="-1"></a><span class="co">#&gt; 10 taxon18     1.52  1.69e- 8</span></span>
+<span id="cb5-30"><a href="#cb5-30" tabindex="-1"></a><span class="co">#&gt; # ℹ 11 more rows</span></span></code></pre></div>
 <p>To obtain additional results such as the estimated standard error of
 the log fold changes, or for more complex analyses, use the
 <code>DESeq2::DESeq()</code> or

@@ -142,7 +142,8 @@ gmpr <- function (comm, intersect.no = 10, ct.min = 1, trace = TRUE) {
 }
 
 
-get_offset <- function(Y, x = NULL, libsize = NULL, method = c("TSS","CSS","RLE","TMM", "GMPR", "Wrench",
+get_offset <- function(Y, x = NULL, libsize = NULL, 
+                       method = c("TSS","CSS","RLE","TMM", "GMPR", "Wrench",
                                                "G-RLE", "FTSS")){
   method <- match.arg(method)
   Y_out <- Y

@@ -12,10 +12,10 @@
 Differential abundance analysis (DAA) of the microbiome is statistically
 challenging because 16S sequencing data are compositional. To account
 for this, many common DAA methods require calculating “normalization
-factors” that serve as the offset term in the statistical model. DAA
-methods that require normalization are edgeR, DESeq2, and MetagenomeSeq.
-Some common normalization methods are TSS, CSS, TMM, RLE, GMPR, and
-Wrench.
+factors” that serve as the offset term (or similar) in the statistical
+model. DAA methods that require normalization include edgeR, DESeq2, and
+MetagenomeSeq. Some common normalization methods are TSS, CSS, TMM, RLE,
+GMPR, and Wrench.
 
 This repository provides companion code for our article, “Group-wise
 normalization in differential abundance analysis of microbiome samples”,
@@ -35,9 +35,8 @@ replicated using the scripts `model_based_simulations.R` and
 `synthetic_data_simulations.R` in the `analysis.R` folder. The
 simulations vary factors such as the noise level, sample size, and
 percent of taxa that are differentially abundant, for a variety of
-normalization methods and differential abundance analysis (DAA) methods.
-The scripts `additional_sims.R` and
-`model_based_simulations_confounder.R` supplement the primary
+normalization methods and DAA methods. The scripts `additional_sims.R`
+and `model_based_simulations_confounder.R` supplement the primary
 simulations by comparing normalization methods in subsettings with
 reduced compositional bias, imbalanced library sizes between groups, no
 differentially abundant taxa, or adjustment for a confounding variable.
@@ -46,46 +45,49 @@ The results can be summarized using the script `process_output.R`.
 The simulations performed in the article comprised 1,000 replications of
 each setting, which is too much to be run locally or on a single
 computing core. Replicating the full study requires outsourcing
-computation to a remote cluster. To run a subset of the simulations
-locally, one could, for example:
+simulations to a remote computing cluster. To run a subset of the
+simulations locally, one could, for example:
 
 1.  Open the R Project file `microbiome_groupwise_normalization.Rproj`
-    to open RStudio in the proper working directory.
-2.  Ensure the packages listed in the `utils/install_packages.R` script
-    are installed.
+    to start RStudio in the proper working directory.
+2.  Ensure the packages listed in the script `utils/install_packages.R`
+    are all installed.
 3.  Open the file `model_based_simulations.R`.
 4.  Set the `total_reps` parameter to 100.
 5.  Set the `norms` (normalization methods), `methods` (DAA methods),
     `prop_signal` (signal percentages), `s2_vs` (variance parameters),
     and `ns` (sample sizes) to their desired values (e.g.,
     `prop_signal=c(0.1, 0.2)`)
-6.  Run the script and generate figures using `process_output.R`.
+6.  Run the script and use `process_output.R` to generate figures.
 
-Our analysis also included an application of the proposed methods to
-PHACS and MLVS/MBS. To run this analysis using synthetic versions of
-these datasets, run the file `analysis/real_data_analysis.R`, which will
-finish quickly.
+In addition to our simulation study, we applied the proposed
+normalization methods to PHACS and MLVS/MBS. To replicate this analysis
+using synthetic versions of these datasets, run the file
+`analysis/real_data_analysis.R`, which will finish quickly.
 
 ## Applying group-wise normalization
 
 This section provides instructions for using group-wise normalization to
-analyze real microbiome data. The first step is to generate and save
-fake versions of PHACS and MLVS/MBS and to load the required functions.
-Please ensure you have installed the require R packages by reviewing the
-file `utils/install_packages.R`.
+analyze real microbiome data. The first step is to generate fake
+versions of PHACS and MLVS/MBS and to load the required functions.
+Please review the file `utils/install_packages.R` to ensure you have
+installed the appropriate R packages.
 
 ``` r
 source("utils/generate_fake_data.R")
 source("utils/general_sim_functions.R")
 ```
 
-We consider the task of performing DAA on MLVS/MBS. Examination of the
-data reveals there are 372 taxa (the rows) measured on 520 subjects (the
-columns). The subjects have a mean sequencing depth (or “library size”)
-of 61 thousand taxa (range: 29 thousand to 110 thousand). Half the
-subjects have a value of 1 for the covariate and half the subjects have
-0. At present, the group-wise normalization framework can only be
-applied when the covariate of interest is binary.
+We will consider the task of performing DAA on MLVS/MBS. Examination of
+the data reveals there are 372 taxa (the rows) measured on 520 subjects
+(the columns). The subjects have a mean sequencing depth (or “library
+size”) of 61 thousand taxa (range: 29 thousand to 110 thousand). Half
+the subjects have a value of 1 for the covariate and half the subjects
+have 0. At present, the group-wise normalization framework can only be
+applied when the covariate of interest is binary. Note that, on real
+data, the library size will not equal the sample-wise sum of counts
+since some taxa are typically omitted. Omitted taxa should still be
+counted in the library size.
 
 ``` r
 load("data/MLVS_MBS.rda")
@@ -106,23 +108,25 @@ summary(sequencing_depth)
 #>   28743   49823   60051   60574   69536  110096
 ```
 
-The main functions we will use for DAA are `groupnorm()` and
-`analysis_wrapper()`. `groupnorm()` calculates the corrected offset term
-by one of the two proposed group-wise normalization methods, group-wise
-relative log expression (G-RLE) or fold-truncated sum scaling(FTSS).
-G-RLE is a simple normalization method that applies RLE, a traditional
-sample-wise normalization method, to the group-level log fold changes
-instead of their sample-level analogs. FTSS is a more complex method
-that selects reference taxa based on the proximity of their log fold
-changes to the mode log fold change. The method involves an additional
-hyper-parameter $p^*$, which denotes proportion of taxa that will serve
-as reference taxa. Our simulations demonstrated that FTSS is generally
-more effective at G-RLE at maintaining the nominal FDR level and offers
-slightly better power. Setting $p^*=0.4$ is a reasonable default.
+The main functions we will use are `groupnorm()` and
+`analysis_wrapper()`. The function `groupnorm()` calculates the
+corrected offset term by one of the two proposed normalization methods,
+group-wise relative log expression (G-RLE) or fold-truncated sum scaling
+(FTSS). G-RLE is a simple normalization method that applies RLE, a
+traditional sample-wise normalization method, to the group-level log
+fold changes instead of their sample-level analogs. FTSS is a more
+complex method that selects reference taxa based on the proximity of
+their log fold changes to the mode log fold change. The method involves
+an additional hyper-parameter $p$, which denotes proportion of taxa that
+will serve as reference taxa. Our simulations demonstrated that FTSS is
+generally more effective at G-RLE at maintaining the nominal FDR level
+and offers slightly better power. Setting $p=0.4$ is a reasonable
+default.
 
 ``` r
 # G-RLE
-offset_grle <- groupnorm(Y = taxa, x = covariate, method = "G-RLE")
+offset_grle <- groupnorm(Y = taxa, x = covariate, libsize = sequencing_depth,
+                         method = "G-RLE")
 summary(offset_grle)
 #>    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
 #>   27055   49665   59941   60729   70471  116967
@@ -131,6 +135,7 @@ summary(offset_grle)
 offset_ftss <- 
   groupnorm(
     Y = taxa, x = covariate, 
+    libsize = sequencing_depth,
     method = "FTSS", 
     prop_reference = 0.40 # Default value
   )
@@ -140,14 +145,14 @@ summary(offset_ftss)
 ```
 
 The last step is to perform DAA using `analysis_wrapper()`. For
-simplicity, we limit our analysis to the normalization method FTSS and
-the DAA methods MetagenomeSeq and DESeq2.
+simplicity, we use the normalization method FTSS and the DAA methods
+MetagenomeSeq and DESeq2.
 
 `analysis_wrapper()` produces a data frame with the columns `beta_1_hat`
 and `pv`, which contain the estimated log fold change and p-value for
-each taxon, respectively. MetagenomeSeq identified 23 associations and
-DESeq2 21 associations at a nominal FDR of 5% after applying the
-Benjamini and Hochberg procedure.
+each taxon, respectively. At a nominal FDR level of 5% based on the
+Benjamini and Hochberg procedure, MetagenomeSeq identified 23 taxa as
+associated with covariate and DESeq2 identified 21.
 
 ``` r
 # MetagenomeSeq
@@ -180,6 +185,9 @@ out_mgs |>
 #>  9 taxon13     1.04  5.11e- 8
 #> 10 taxon15     2.61  0       
 #> # ℹ 13 more rows
+```
+
+``` r
 # DESeq2
 out_deseq <-
     analysis_wrapper(

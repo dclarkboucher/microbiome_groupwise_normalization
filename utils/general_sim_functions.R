@@ -168,7 +168,7 @@ gmean <- function(x){
   
 }
 
-groupnorm <- function(Y, x, method = c("G-RLE", "FTSS"), 
+groupnorm <- function(Y, x, libsize = NULL, method = c("G-RLE", "FTSS"), 
                       prop_reference = 0.4,
                       use_median = FALSE
 ){
@@ -178,7 +178,13 @@ groupnorm <- function(Y, x, method = c("G-RLE", "FTSS"),
   n <- ncol(Y) # number of samples
   q <- nrow(Y) # number of taxa
   
-  S <- colSums(Y)
+  if (is.null(libsize)){
+    S <- colSums(Y)
+    
+  } else {
+    S <- libsize
+  }
+  
   Yt <- t(Y)
   
   Y0 <- Yt[x == 0, ]
@@ -226,14 +232,18 @@ groupnorm <- function(Y, x, method = c("G-RLE", "FTSS"),
   (offset / gmean(offset)) * gmean(S)
   
 }
-
-get_offset <- function(Y, x = NULL, method = c("TSS","CSS","RLE","TMM", "GMPR", "Wrench",
-                                               "G-RLE", "FTSS")){
+get_offset <- function(Y, x = NULL, libsize = NULL, 
+                       method = c("TSS","CSS","RLE","TMM", "GMPR", "Wrench",
+                                  "G-RLE", "FTSS")){
   method <- match.arg(method)
   Y_out <- Y
   n <- ncol(Y)
   p <- nrow(Y)
-  libsize <- colSums(Y)
+  if (is.null(libsize)){
+    
+    libsize <- colSums(Y)
+  }
+  
   
   if(is.null(rownames(Y))){
     rownames(Y) <- paste0("t", seq_len(p))
@@ -279,7 +289,6 @@ get_offset <- function(Y, x = NULL, method = c("TSS","CSS","RLE","TMM", "GMPR", 
   offset
   
 }
-
 
 get_synthetic_data <- function(Y, beta1, S){
   
@@ -432,8 +441,7 @@ general_model_sims <-
           
           # Analyze
           out <- analysis_wrapper(Y, x, offset, method = method)
-          beta1_hat <- out$beta1_hat
-          pv <- out$pv
+
           
         } else {
           
@@ -453,15 +461,8 @@ general_model_sims <-
                             pv = pvalue)
             )
         }
-        
-        
-        # Calculate MSE
-        mse_all <- mse(beta1, beta1_hat)
-        mse0 <- mse(beta1[!true_beta], beta1_hat[!true_beta])
-        mse1 <- NA
-        if (q1 > 0){
-          mse1 <- mse(beta1[true_beta], beta1_hat[true_beta])
-        }
+        beta1_hat <- out$beta1_hat
+        pv <- out$pv
         
         # FDR results 
         cutoffs <- c(0.05, 0.10)
@@ -499,10 +500,7 @@ general_model_sims <-
             fdr = cutoffs, # true FDR
             tpr = tpr, 
             fpr = fpr,
-            fdp = fdp,
-            mse_all = mse_all,
-            mse0 = mse0,
-            mse1 = mse1
+            fdp = fdp
           )
         
         
