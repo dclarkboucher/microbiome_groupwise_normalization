@@ -170,10 +170,11 @@ gmean <- function(x){
 
 groupnorm <- function(Y, x, libsize = NULL, method = c("G-RLE", "FTSS"), 
                       prop_reference = 0.4,
-                      use_median = FALSE
+                      ftss_center = c("mode", "median")
 ){
   
   method <- match.arg(method)
+  ftss_center <- match.arg(ftss_center)
   if (!all(x %in% c(0,1))) stop ("Covariate must be binary.")
   n <- ncol(Y) # number of samples
   q <- nrow(Y) # number of taxa
@@ -211,10 +212,10 @@ groupnorm <- function(Y, x, libsize = NULL, method = c("G-RLE", "FTSS"),
   } else if (method == "FTSS"){
     
     log_ratios <- log(prop1 / prop0)
-    if (use_median){
+    if (ftss_center == "median"){
       lr_center <- median(log_ratios)
       
-    } else{
+    } else if (ftss_center == "mode"){
       lr_dens <- density(log_ratios)
       lr_center <- with(lr_dens, x[which.max(y)])
     }
